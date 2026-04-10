@@ -7,6 +7,7 @@ __pycache__/
 *.so
 data/
 data/raw/images/
+!data/raw.dvc
 
 # Distribution / packaging
 .Python
