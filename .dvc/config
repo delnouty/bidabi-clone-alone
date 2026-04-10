@@ -1,4 +1,7 @@
 [core]
     remote = localstore
+[cache]
+    protected = false
+    type = copy
 ['remote "localstore"']
     url = ../data/localstore
