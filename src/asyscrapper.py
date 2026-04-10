@@ -7,15 +7,19 @@ from aiohttp import ClientSession, ClientTimeout
 API_URL = "https://world.openfoodfacts.org/cgi/search.pl"
 HEADERS = {"User-Agent": "MyAwesomeApp/1.0"}
 
-OUTPUT_DIR = "data"
-
-CATEGORY = "sugar" #"bread", "milk", "champagnes", "butter" 
+# -------------------------
+# Configuration
+# -------------------------
+CATEGORY = "bread"   # Exemple : "bread", "milk", "butter"
 TARGET_COUNT = 180
 PAGE_SIZE = 100
 MAX_PAGES = 50
 
 MAX_CONCURRENT_REQUESTS = 10
 MAX_CONCURRENT_IMAGES = 10
+
+RAW_DIR = "data/raw"
+RAW_IMAGES_DIR = os.path.join(RAW_DIR, "images")
 
 
 # -------------------------
@@ -74,10 +78,11 @@ async def fetch_page(session, category, page, page_size, sem):
 # -------------------------
 # Async image download
 # -------------------------
-async def download_image(session, url, image_id, sem, folder="data/images/sugar"):
+async def download_image(session, url, image_id, sem, category):
     if not url:
         return
 
+    folder = os.path.join(RAW_IMAGES_DIR, category)
     os.makedirs(folder, exist_ok=True)
 
     ext = url.split(".")[-1].split("?")[0]
@@ -126,7 +131,7 @@ async def scrape(category, target_count, page_size, max_pages):
                     image_id = info[0]
 
                     task = asyncio.create_task(
-                        download_image(session, image_url, image_id, sem_img)
+                        download_image(session, image_url, image_id, sem_img, category)
                     )
                     image_tasks.append(task)
 
@@ -143,6 +148,7 @@ async def scrape(category, target_count, page_size, max_pages):
 # CSV export
 # -------------------------
 def save_to_csv(filename, rows):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow(["foodId", "label", "category", "foodContentsLabel", "image"])
@@ -154,7 +160,7 @@ def save_to_csv(filename, rows):
 # -------------------------
 def main():
     products = asyncio.run(scrape(CATEGORY, TARGET_COUNT, PAGE_SIZE, MAX_PAGES))
-    output_file = f"{OUTPUT_DIR}/metadata_{CATEGORY}_{TARGET_COUNT}.csv"
+    output_file = os.path.join(RAW_DIR, f"metadata_{CATEGORY}_{TARGET_COUNT}.csv")
     save_to_csv(output_file, products)
     print(f"✔ Fichier {output_file} créé. Produits valides collectés : {len(products)}")
 
